@@ -1,0 +1,789 @@
+---
+title: "leisure report"
+author: "team2"
+date: "2018년 6월 6일"
+output: html_document
+---
+# **소득에 따른 여가 지출비 동향 분석**
+
+##Ⅰ. 도입
+###1. 요약(초록)
+가장 먼저, 선정된 다섯 개의 여가 활동 별로 나누어 각각의 지출 형태(평균, 최솟값, 중앙값, 최댓값)와 경상소득과의 관계를 알아보았다. 다음으론 가구원의 수와 취업 중인 가구원의 수 또한 여가 지출에 영향을 미칠 것이라 판단하여 이를 경상소득 별로 알아보고 경상소득별 여가 지출 비중 분석, 경상소득별 1인당 여가 지출 분석, 경상소득별 1인당 여가 지출 비중 분석을 해보았다. 세 번째 학력별, 네 번째로는 직종별로 나누어 여가 지출을 분석함으로써 여가 지출에 영향을 미치는 여러 변수들을 알아보고자 하였다. 분석 결과, 실제로 소득이 많아질수록 여가에 지출하는 비용이 증가하는 것으로 나타났다. 이는 고학력일 때와 흔히 고소득으로 평가되는 직종일 때에도 동일하게 나타났다.
+  
+###2. 분석 주제
+현재의 대한민국은 소득 불균형이 심각한 상황이다. 중산층은 몰락했고 계속된 빈익빈 부익부 현상은 국민들로 하여금 근로 의욕을 상실하게 만들었다. 이러한 상황에서 소위 ‘잘 사는’ 사람들과 그렇지 않은 사람들의 여가 또한 따로 존재한다는 것이 일반적인 생각이다. 때문에 우리는 본 분석을 통해 실제로 소득에 따라 여가의 모습이 달라지는지를 비롯해 여가에 영향을 주는 다양한 요인들을 밝히고, 우리 사회의 여가 양상을 알아볼 것이다.
+
+###3. 데이터 선정 이유
+해당 데이터는 한국조세재정연구원(http://panel.kipf.re.kr/Data/Data#TR_56)의 9차년도(2016년) 재정패널조사로, 가공되지 않은 raw 데이터이다. 제주도를 제외한 전국 15개 시도에 거주하고 있는 일반 가구와 가구원을 모집단으로 하는데, 데이터는 가구용, 가구원용 총 두 가지로 나뉘어 제공된다. 우리는 특히 여가와 소득의 관계에 관심을 두고 있기 때문에 일반적인 소득 분위가 가구단위로 결정된다는 점을 고려하여 가구용 데이터를 선정하게 되었다. 데이터는 가구 기본 현황, 재산 상황, 가계 지출 현황 등의 내용을 담고 있다.
+
+---
+##Ⅱ. 분석 
+###1. 분석 목적 및 방법
+첫 번째로 여가 종류별 지출을 분석했다. 여가의 종류 각각의 특성을 알아보고, 그다음 경상소득과의 유의미한 관계를 찾고자 경상소득에 따른 여가별 지출 동향을 분석, 이를 검증하기 위한 상관분석의 순서로 진행했다. 두 번째로는 가구원 수, 취업 중 가구원 수라는 변수를 추가했다. 이를 통해 여가별 1인당 여가 지출과 경상소득별 1인당 여가 지출 비중을 분석했다. 세 번째 분석에서는 가구주의 최종학력과 여가의 관계를 알아보고자 했다. 졸업 여부 변수를 이용해 수료와 졸업 상태인 집단만을 선별했으며 여가 종류별 학력 요인의 영향을 분석한 다음, 학력별 여가 지출 금액, 학력별 여가 지출 비중을 분석했다. 네 번째 분석인 직종별 여가 지출도 비슷한 방식으로 진행되었는데, 이를 통해 직종별 여가 지출과 직종별 여가 지출 비중을 분석했다. 
+
+###2. 데이터 분석 준비하기
+####패키지 로드하기
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+####데이터 불러오기
+```{r}
+data <- read.csv("NaSTaB09H.csv")
+```
+
+####변수명 바꾸기
+변수 검토에 전 분석에 사용할 변수의 알아보기 쉽게 바꿨다.
+```{r}
+data <- rename(data,
+               income = h09ca001,                 #경상소득 
+               dvd_spend_yesno = h09ch001,        #서적, 음반, DVD 등 구입 및 대여료 지출 여부
+               dvd_spend = h09ch002,              #서적, 음반, DVD 등 구입 및 대여료
+               movie_spend_yesno = h09ch003,      #박물관, 공연, 영화 관람료 지출 여부
+               movie_spend = h09ch004,            #박물관, 공연, 영화 관람료
+               race_spend_yesno = h09ch005,       #경륜, 경정, 경마권 구입료 지출 여부
+               race_spend = h09ch006,             #경륜, 경정, 경마권 구입료       
+               activity_spend_yesno = h09ch012,   #체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함) 여부
+               activity_spend = h09ch013,         #체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+               trip_spend_yesno = h09cn001,       #관광, 여행 및 숙박료(국내 및 국외) 지출 여부
+               trip_spend = h09cn002,             #관광, 여행 및 숙박료(국내 및 국외)        
+               member_n = h09aa007,               #가구원 수  
+               member_income = h09aa008)          #취업 중인 가구원 수 
+```
+
+###3. 데이터 분석
+###1) 여가 종류별 지출 금액 분석
+#### (1) 서적, 음반, DVD 등 구입 및 대여료
+#### (1)-1. h1_1 '서적, 음반, DVD 등 구입 및 대여료' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$dvd_spend)
+#존재할 수 없는 값(이상치)-무응답 값(-9로 표기)을 결측 처리
+data$dvd_spend <- ifelse(data$dvd_spend == -9, NA, data$dvd_spend)
+#결측치 개수 확인
+table(is.na(data$dvd_spend))
+#이상치 제거
+boxplot(data$dvd_spend)$stats
+data$dvd_spend <- ifelse(data$dvd_spend < 0.1 | data$dvd_spend > 60, NA, data$dvd_spend)
+```
+
+
+#### (1)-2. 지출 여부에 '예'라고 답한 사람들의 평균 지출액, 지출액의 최솟값, 중앙값, 최댓값 구하기
+```{r warning=FALSE}
+dvd <- data %>% 
+  filter(dvd_spend_yesno == 1)
+summary(dvd$dvd_spend)
+```
+평균은 18.24만 원, 최솟값은 0.1만 원, 중앙값은 평균보다 작은 12만 원, 최댓값은 60만 원이다.
+
+
+#### (1)-3. 경상소득에 따른 dvd_spend 지출 동향 분석 및 그래프 출력하기
+```{r}
+data_dvd <- data %>% 
+  filter(dvd_spend_yesno == 1) %>% 
+  group_by(income) %>% 
+  summarise(mean_dvd = mean(dvd_spend, na.rm = T))
+data_dvd
+ggplot(data = data_dvd, aes(x = income, y = mean_dvd)) + geom_col(color = "white", fill = rgb(0.2,0.5,0.7,0.5))
+```
+
+
+#### (1)-4. 상관분석
+```{r}
+cor.test(data$income, data$dvd_spend)
+
+```
+p 값이 0.05보다 작으므로 유의미하다 할 수 있다. cor 값이 양수이므로 `경상소득`과 `서적, 음반, DVD 등 구입 및 대여료`는 정적 관계이다.
+
+
+
+#### (2) 박물관, 공연, 영화 관람료
+#### (2)-1. h2_1 '박물관, 공연, 영화 관람료' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$movie_spend)
+#결측치 개수 확인
+table(is.na(data$movie_spend))
+#이상치 제거
+boxplot(data$movie_spend)$stats
+data$movie_spend <- ifelse(data$movie_spend < 0.3 | data$movie_spend > 40, NA, data$movie_spend)
+```
+
+
+#### (2)-2. 지출 여부에 '예'라고 답한 사람들의 평균 지출액, 지출액의 최솟값, 중앙값, 최댓값 구하기
+```{r}
+movie <- data %>% 
+  filter(movie_spend_yesno == 1)
+summary(movie$movie_spend)
+```
+평균은 12.01만 원, 최솟값은 0.3만 원, 중앙값은 평균보다 작은 10만 원, 최댓값은 40만 원이다.
+
+
+#### (2)-3. 경상소득에 따른 movie_spend 지출 동향 분석 및 그래프 출력하기
+```{r}
+data_movie <- data %>% 
+  filter(movie_spend_yesno == 1) %>% 
+  group_by(income) %>% 
+  summarise(mean_movie = mean(movie_spend, na.rm = T))
+data_movie
+ggplot(data = data_movie, aes(x = income, y = mean_movie)) + geom_col(color = "white", fill = rgb(0.2,0.7,0.2,0.5))
+```
+
+
+#### (2)-4. 상관분석
+```{r}
+cor.test(data$income, data$movie_spend)
+```
+p 값이 0.05보다 작으므로 유의미하다 할 수 있다. cor 값이 양수이므로 `경상소득`과 `박물관, 공연, 영화 관람료`는 정적 관계이다.
+
+
+
+#### (3) 경륜, 경정, 경마권 구입료
+#### (3)-1. h3_1 '경륜, 경정, 경마권 구입료' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$race_spend)
+#결측치 개수 확인
+table(is.na(data$race_spend))
+```
+응답한 가구가 4가구 밖에 되지 않아 분석이 무의미하다고 판단하여 분석에서 배제하였다.
+
+
+#### (3)-2. 상관분석
+```{r}
+cor.test(data$income, data$race_spend)
+```
+p값이 0.05보다 크므로 무의미하다.
+
+
+
+#### (4) 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+#### (4)-1. h6_1 '체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$activity_spend)
+#결측치 개수 확인
+table(is.na(data$activity_spend))
+#이상치 제거
+boxplot(data$activity_spend)$stats
+data$activity_spend <- ifelse(data$activity_spend < 1 | data$activity_spend > 250, NA, data$activity_spend)
+```
+
+
+#### (4)-2. 지출 여부에 '예'라고 답한 사람들의 평균 지출액, 지출액의 최솟값, 중앙값, 최댓값 구하기
+```{r}
+activity <- data %>% 
+  filter(activity_spend_yesno == 1)
+summary(activity$activity_spend)
+```
+평균은 74.11만 원, 최솟값은 1만 원, 중앙값은 평균보다 작은 60만 원, 최댓값은 250만 원이다.
+
+
+#### (4)-3. 경상소득에 따른 activity_spend 지출 동향 분석 및 그래프 출력하기
+```{r}
+data_activity <- data %>% 
+  filter(activity_spend_yesno == 1) %>% 
+  group_by(income) %>% 
+  summarise(mean_activity = mean(activity_spend, na.rm = T))
+data_activity
+ggplot(data = data_activity, aes(x = income, y = mean_activity)) + geom_col(color = "white", fill = rgb(0.8,0.2,0.2,0.5))
+```
+
+
+#### (4)-4. 상관분석
+```{r}
+cor.test(data$income, data$activity_spend)
+
+```
+p값이 0.05보다 작으므로 유의미하다 할 수 있다. cor 값이 양수이므로 `경상소득`과 `체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)`는 정적 관계이다.
+
+
+
+#### (5) 관광, 여행 및 숙박료(국내 및 국외)
+#### (5)-1. n1_1 '관광, 여행 및 숙박료(국내 및 국외)' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$trip_spend)
+#존재할 수 없는 값(이상치)-무응답 값(-9로 표기)을 결측 처리
+data$trip_spend <- ifelse(data$trip_spend == -9, NA, data$trip_spend)
+#결측치 개수 확인
+table(is.na(data$trip_spend))
+#이상치 제거하기
+boxplot(data$trip_spend)$stats
+data$trip_spend <- ifelse(data$trip_spend < 0 | data$trip_spend > 660, NA, data$trip_spend)
+```
+
+
+#### (5)-2. 지출 여부에 '예'라고 답한 사람들의 평균 지출액, 지출액의 최솟값, 중앙값, 최댓값 구하기
+```{r}
+trip <- data %>% 
+  filter(trip_spend_yesno == 1)
+summary(trip$trip_spend)
+```
+평균은 159만 원, 최솟값은 1만 원, 중앙값은 평균보다 작은 100만 원, 최댓값은 660만 원이다.
+
+
+#### (5)-3. 경상소득에 따른 trip_spend 지출 동향 분석 및 그래프 출력하기
+```{r}
+data_trip <- data %>% 
+  filter(trip_spend_yesno == 1) %>% 
+  group_by(income) %>% 
+  summarise(mean_trip = mean(trip_spend, na.rm = T))
+data_trip
+ggplot(data = data_trip, aes(x = income, y = mean_trip)) + geom_col(color = "white", fill = rgb(0.7,0.7,0.2,0.5))
+```
+
+
+#### (5)-4. 상관분석
+```{r}
+cor.test(data$income, data$trip_spend)
+```
+p 값이 0.05보다 작으므로 유의미하다 할 수 있다. cor 값이 양수이므로 `경상소득`과 `관광, 여행 및 숙박료(국내 및 국외)`는 정적 관계이다.
+
+
+
+
+###2) 가구원 수 및 경상소득별 여가 지출 차이
+데이터가 가구 단위임을 고려하면 가구원 수에 따라 지출 금액이 달라질 수 있다. 때문에 경상 소득 별 가구원 수를 알아보았고, 또 경제활동을 하는 가구원의 수에 따라서도 여가 지출이 달라질 수 있을 것이라 판단하여 경상소득별 취업 중인 가구원 수를 알아보았다.
+
+#### (1) 경상 소득별 가구당 가구원 수
+```{r}
+data_member <- data %>% 
+  filter(income != -9) %>% 
+  group_by(income) %>% 
+  summarise(mean_member = mean(member_n))
+ggplot(data_member, aes(x = income, y = mean_member)) + geom_col(color = "white", fill = rgb(0.9,0.3,0,0.5))
+```
+
+6구간(월평균 경상소득 599만 원 이내)까지 가구당 평균 가구원 수가 증가하지만 이후 구간에서는 큰 차이를 보이지 않는다. 
+
+
+
+#### (2) 경상 소득별 가구당 취업 중인 가구원 수
+```{r}
+data_working <- data %>% 
+  filter(income != -9) %>% 
+  group_by(income) %>% 
+  summarise(mean_workingmember = mean(member_income))
+ggplot(data_working, aes(x = income, y = mean_workingmember)) + geom_col(color = "white", fill = rgb(0.3,0.5,1,0.7))
+```
+
+소득에 따라 취업 중인 가구원의 수가 다소 크게 차이 난다. 대체적으로 취업 중인 가구원의 수가 많을수록 소득이 높은 양상을 보인다.
+
+
+
+#### (3) 가구원 수 및 경상소득별 여가 지출 차이
+#### (3)-1. 경상소득별 여가 지출 비중 분석
+```{r warning=FALSE}
+#모든 여가 변수 데이터 합치기
+data_total <- left_join(data_dvd, data_movie, by = "income")
+data_total <- left_join(data_total, data_activity, by = "income")
+data_total <- left_join(data_total, data_trip, by = "income")
+data_total <- data_total %>% 
+  select(mean_dvd, mean_movie, mean_activity, mean_trip)
+
+#종합 결과그래프 출력
+rownames(data_total) = c("below 100","100~199","200~299","300~399","400~499","500~599","600~699","700~799","800~899","900~999","above 1000")
+barplot(t(data_total), main = "Total Gragh", col = colors()[c(2,6,3,16)])
+legend(0.1, 400, c("dvd", "movie", "activity", "trip"), fill = colors()[c(2,6,3,16)])
+```
+
+경상소득이 많을수록 여가 별 지출 비용도 증가한다. 소득에 관계없이 `관광, 여행 및 숙박료(국내 및 국외)`에 가장 많은 지출을 하고 있었고 그다음을 `체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)`가 잇는다. `서적, 음반, DVD 등 구입 및 대여료`와 `박물관, 공연, 영화 관람료`는 큰 차이 없이 적은 지출 비중을 차지했다.
+
+
+#### (3)-2. 경상소득별 1인당 여가 지출 분석
+가구원 수로 나눈(1인당 지출비) 종합 결과 그래프 출력하기 위해 여가 항목별 데이터 가공하기
+```{r}
+#소득에 따른 1인당 서적, 음반, DVD 등 구입 및 대여료
+data_total2 <- left_join(data_dvd, data_member, by = "income")
+divided_dvd <- data_total2 %>% 
+  mutate(member_dividing_dvd = mean_dvd / mean_member) %>% 
+  select(income, member_dividing_dvd)
+#소득에 따른 1인당 서적, 음반, DVD 등 구입 및 대여료 그래프
+ggplot(data = divided_dvd, aes(x = income, y = member_dividing_dvd)) + geom_col(color="white", fill=rgb(0.2,0.5,0.7,0.5))
+```
+
+10구간(월평균 경상소득 999만 원 이내)까지는 특정한 흐름을 찾기 힘들다. 그러나 11구간(월평균 경상소득 1000만 원 이상)에서 유독 많은 지출이 발생한 것을 알 수 있다.
+
+
+```{r}
+#소득에 따른 1인당 박물관, 공연, 영화 관람료
+data_total3 <- left_join(data_movie, data_member, by = "income")
+divided_movie <- data_total3 %>% 
+  mutate(member_dividing_movie = mean_movie / mean_member) %>%
+  select(income, member_dividing_movie)
+#소득에 따른 1인당 박물관, 공연, 영화 관람료 그래프
+ggplot(data = divided_movie, aes(x = income, y = member_dividing_movie)) + geom_col(color="white", fill=rgb(0.2,0.7,0.2,0.5))
+```
+
+3구간(월평균 경상소득 200~299만 원)부터 소득이 증가함에 따라 1인당 지출 금액이 늘어나는 양상이다. 특이하게 1구간(월평균 경상소득 100만 원 미만)에서 높은 지출을 기록한 여가이다.
+
+
+```{r}
+#소득에 따른 1인당 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+data_total4 <- left_join(data_activity, data_member, by = "income")
+divided_activity <- data_total4 %>% 
+  mutate(member_dividing_activity = mean_activity / mean_member) %>%
+  select(income, member_dividing_activity)
+#소득에 따른 1인당 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함) 그래프
+ggplot(data = divided_activity, aes(x = income, y = member_dividing_activity)) + geom_col(color="white", fill=rgb(0.8,0.2,0.2,0.5))
+```
+
+소득이 양극으로 갈수록(적을수록/많을수록) 1인당 지출 금액이 높아지는 양상을 보인다.
+
+
+```{r}
+#소득에 따른 1인당 관광, 여행 및 숙박료(국내 및 국외)
+data_total5 <- left_join(data_trip, data_member, by = "income")
+divided_trip <- data_total5 %>% 
+  mutate(member_dividing_trip = mean_trip / mean_member) %>%
+  select(income, member_dividing_trip)
+#소득에 따른 1인당 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함) 그래프
+ggplot(data = divided_trip, aes(x = income, y = member_dividing_trip)) + geom_col(color="white", fill=rgb(0.7,0.7,0.2,0.5))
+```
+
+대체적으로 소득이 늘어남에 따라 1인당 관광, 여행 및 숙박료(국내 및 국외) 지출이 증가한다.
+
+
+#### (3)-3. 경상소득별 1인당 여가 지출 비중 분석
+가구원 수로 나눈(1인당 지출비) 여가별 지출 비중 그래프 출력하기
+```{r warning=FALSE}
+#모든 1인당 여가 지출 변수 합치기
+data_total_divided <- left_join(divided_dvd, divided_movie, by = "income")
+data_total_divided <- left_join(data_total_divided, divided_activity, by = "income")
+data_total_divided <- left_join(data_total_divided, divided_trip, by = "income")
+data_total_divided <- data_total_divided %>% 
+  select(member_dividing_dvd, member_dividing_movie, member_dividing_activity, member_dividing_trip)
+#경상소득별 1인당 여가 지출 비중 그래프 
+rownames(data_total_divided)=c("below 100","100~199","200~299","300~399","400~499","500~599","600~699","700~799","800~899","900~999","above 1000")
+barplot(t(data_total_divided), main = "Total Gragh(per person)", col=colors()[c(2,6,3,15)])
+legend(0.1, 112, c("dvd", "movie", "activity", "trip"), fill = colors()[c(2,6,3,15)])
+```
+
+
+
+
+***
+추가 분석을 위해 변수명을 추가 분석 방향에 맞추어 보다 간편하게 바꾸었다. 또한 새로운 변수를 추가적으로 이용하기위해 이름을 바꿔주었다.
+
+
+```{r}
+#변수명 수정
+data <- rename(data, 
+               consume = h09exp,           #연간 여행 관련 지출 총액
+               dvd = dvd_spend,            #서적, 음반, DVD 등 구입 및 대여료
+               movie = movie_spend,        #박물관, 공연, 영화 관람료
+               activity = activity_spend,  #체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+               triptot = trip_spend,       #관광, 여행 및 숙박료(국내 및 국외)
+               tripoversea = h09cn007,     #해외 관광, 여행 및 숙박료
+               tripdomestic = h09cn010,    #국내 관광, 여행 및 숙박료
+               edu = w09edu01,             #가구주의 최종 교육 기관
+               edugraduation = w09grd01,   #가구주의 최종 교육 기관 졸업 여부
+               job = w09job01)             #직업 
+```
+```{r}
+#사용할 데이터만 할당
+data <- data %>% 
+  select(consume
+         ,dvd
+         ,movie
+         ,activity
+         ,triptot
+         ,tripoversea
+         ,tripdomestic
+         ,edu
+         ,edugraduation
+         ,job)
+str(data)
+```
+
+
+
+추가 분석부터는 조금 더 세부적인 분석을 위해 여가 항목 중 `관광, 여행 및 숙박료(국내 및 국외)` 변수 대신 `국내 관광, 여행 및 숙박료`와 `해외 관광, 여행 및 숙박료` 두 항목으로 나누어 살펴보겠다.
+### 해외 관광, 여행 및 숙박료
+#### '해외 관광, 여행 및 숙박료' 변수 검토 및 전처리
+```{r}
+#응답값 확인
+table(data$tripoversea)
+#존재할 수 없는 값(이상치)-무응답 값(-9로 표기)을 0으로 처리
+data$tripoversea <- ifelse(data$tripoversea == -9, 0, data$tripoversea)
+#결측치 개수 확인
+table(is.na(data$tripoversea))
+#이상치 제거
+boxplot(data$tripoversea)$stats
+data$tripoversea <- ifelse(data$tripoversea < 0 | data$tripoversea > 300, NA, data$tripoversea)
+```
+
+
+#### 해외 관광, 여행 및 숙박료의 평균, 최솟값, 중앙값, 최댓값 구하기
+```{r}
+summary(data$tripoversea)
+```
+평균은 102.9만 원, 최솟값은 0만 원, 중앙값은 평균보다 작은 100만 원, 최댓값은 300만 원이다.
+
+
+### 국내 관광, 여행 및 숙박료
+#### '국내 관광, 여행 및 숙박료' 변수 검토 및 전처리
+```{r}
+#존재할 수 없는 값(이상치)-무응답 값(-9로 표기)을 0으로 처리
+data$tripdomestic <- ifelse(data$tripdomestic == -9, 0, data$tripdomestic)
+#결측치 개수 확인
+table(is.na(data$tripdomestic))
+#이상치 제거
+boxplot(data$tripdomestic)$stats
+data$tripdomestic <- ifelse(data$tripdomestic < 0 | data$tripdomestic > 1000, NA, data$tripdomestic)
+```
+
+#### 국내 관광, 여행 및 숙박료의 평균, 최솟값, 중앙값, 최댓값 구하기
+```{r}
+summary(data$tripdomestic)
+```
+평균은 341.8만 원, 최솟값은 1만 원, 중앙값은 평균보다 작은 300만 원, 최댓값은 1000만 원이다.
+
+
+
+```{r}
+data <- data %>% filter(!is.na(consume))
+```
+여가/여행비는 값이 0인 관측치가 존재하더라도 논리적으로는 문제가 없지만. 총소비 지출이 결측치 또는 0인 경우 논리적으로 문제가 있으므로 총소비 지출 변수에서 결측치가 존재하는 관측치는 제외한다.
+
+
+
+###3) 학력별 여가 지출 차이
+####(1) 학력 변수 검토 및 전처리
+학력기준은 '가구주'입니다.
+```{r}
+#졸업 여부 변수 항목 확인
+table(data$edugraduation)
+```
+
+졸업 여부 변수 확인 결과 2(졸업)이 나머지 1(재학), 3(수료), 4(중퇴)보다 현저히 많다. 수료는 졸업과 같다고 간주하고 졸업, 수료를 제외한 나머지 항목을 필터링하여 학력별 졸업자만 대상으로 분석할 것이다.
+```{r}
+dataedu <- data %>% 
+  filter(edugraduation %in% c(2, 3))
+```
+
+
+```{r}
+#최종 교육 기관 결측치 확인
+table(is.na(dataedu$edu))
+#졸업여부 변수 결측치 확인 
+table(is.na(dataedu$edugraduation)) 
+
+```
+
+```{r}
+#학력(최종 교육 기관) 분포 확인 
+table(dataedu$edu)
+```
+
+2 = 초졸, 3 = 중졸, 4 = 고졸, 5 = 2년제 대졸, 6 = 4년제 대졸, 7 = 석사 졸, 8 = 박사 졸
+
+
+```{r}
+edudf <- data.frame(edu = c(2, 3, 4, 5, 6, 7, 8),
+                    eduname = c('초졸', '중졸', '고졸', '2년제대졸', '4년제대졸', '대학원졸', '대학원졸'))
+dataedu <- left_join(dataedu, edudf, by = 'edu')
+```
+
+`학력 변수(edu)` 내의 값을 기준으로 `학력명 변수(eduname)`를 생성하였다. `박사 졸`의 수가 적었기 때문에 `석사  졸`과 `박사 졸`을 `대학원 졸`이라는 값으로 통합하여 할당했다. 
+
+```{r}
+#학력별 분포
+table(dataedu$eduname)
+```
+
+
+####(2) 학력에 따른 여가 종류별 지출 차이
+학력별로 비교하기 위해 여가 종류마다 학력별 평균값 변수를 생성했다.
+
+```{r}
+#학력별 서적, 음반, DVD 등 구입 및 대여료
+dataedu_dvd <- dataedu %>% 
+  select(eduname, dvd) %>% 
+  group_by(eduname) %>% 
+  summarise(mean_expenditure = mean(dvd, na.rm = T)) %>%
+  mutate(category = 'mean_dvd')
+dataedu_dvd
+```
+
+```{r}
+#학력별 박물관, 공연, 영화 관람료
+dataedu_movie<- dataedu %>% 
+  select(eduname, movie) %>% 
+  group_by(eduname) %>% 
+  summarise(mean_expenditure = mean(movie, na.rm = T)) %>% 
+  mutate(category = 'mean_movie')
+dataedu_movie
+
+```
+
+```{r}
+#학력별 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+dataedu_activity<- dataedu %>% 
+  select(eduname, activity) %>% 
+  group_by(eduname) %>% 
+  summarise(mean_expenditure = mean(activity, na.rm = T)) %>% 
+  mutate(category = 'mean_activity')
+dataedu_activity
+```
+
+```{r}
+#학력별 해외 관광, 여행 및 숙박료
+dataedu_tripoversea<- dataedu %>% 
+  select(eduname, tripoversea) %>% 
+  group_by(eduname) %>% 
+  summarise(mean_expenditure = mean(tripoversea, na.rm = T)) %>% 
+  mutate(category = 'mean_tripoversea')
+dataedu_tripoversea
+```
+
+```{r}
+#학력별 관광, 여행 및 숙박료
+dataedu_tripdomestic<- dataedu %>% 
+  select(eduname, tripdomestic) %>% 
+  group_by(eduname) %>% 
+  summarise(mean_expenditure = mean(tripdomestic, na.rm = T)) %>% 
+  mutate(category = 'mean_tripdomestic')
+dataedu_tripdomestic
+```
+
+
+
+####(3) 학력에 따른 여가 지출 차이
+학력별로 모든 여가/여행비를 비교하기 위해 데이터 구조를 바꾸어준다.
+```{r}
+dataedu3 <- bind_rows(dataedu_dvd, dataedu_movie, dataedu_activity, dataedu_tripoversea, dataedu_tripdomestic)
+head(dataedu3)
+```
+
+
+```{r}
+#학력별 여가/여행비 지출 금액
+ggplot(data = dataedu3, aes(x = reorder(eduname, mean_expenditure), y = mean_expenditure, fill = category)) +        geom_col() +
+  ggtitle('학력별 여가/여행비 지출 금액')
+```
+학력이 높아질수록 총 여가/여행비 또한 증가하고 있다.
+
+
+```{r warning=TRUE}
+#학력별 여가/여행비 지출 비중
+ggplot(data = dataedu3, aes(x = reorder(eduname, mean_expenditure), y = mean_expenditure, fill = category)) + geom_col(position='fill') +
+  ggtitle('학력별 여가/여행비 지출 비중')
+```
+`서적, 음반, DVD 등 구입 및 대여료`, 박물관, 공연, 영화 관람료`, `체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)`는 학력이 높아질수록 점진적으로 증가하는 추세이다. 중졸에서 2년제 대졸까지 `국내 관광, 여행 및 숙박료`의 비중이 감소하고 `해외 관광, 여행 및 숙박료`의 비중이 증가하다 4년제 대졸부터 그 반대의 모습을 보인다.
+
+
+
+####(4) 학력별 총 지출 대비 여가/여행비 지출 평균
+종속변수인 여가/여행 지출비 항목의 결측치는  밀도 그래프 표현을 위해 0으로 대체한다.
+```{r}
+dataedu$dvd <- ifelse(is.na(dataedu$dvd), 0, dataedu$dvd)
+dataedu$movie <- ifelse(is.na(dataedu$movie), 0, dataedu$movie)
+dataedu$activity <- ifelse(is.na(dataedu$activity), 0, dataedu$activity)
+dataedu$triptot <- ifelse(is.na(dataedu$triptot), 0, dataedu$triptot)
+```
+
+
+```{r}
+#총여가비 변수 생성
+dataedu <- dataedu %>% mutate(leisuretot = dvd + movie + activity)
+head(dataedu)
+```
+
+
+```{r}
+#총 지출 대비 여가/여행비 지출 평균변수 생성
+dataedu <- dataedu %>% mutate(lt_consume_ratio = (leisuretot + triptot) / consume * 100)
+```
+
+
+```{r}
+#학력별 총 지출 대비 여가/여행비 지출 평균값 확인
+lt_consume_ratio_mean <- dataedu %>%
+  group_by(eduname) %>% 
+  summarise(lt_consume_ratio_mean = mean(lt_consume_ratio)) %>% 
+  arrange(lt_consume_ratio_mean)
+lt_consume_ratio_mean
+```
+
+
+```{r warning=FALSE}
+#학력별 총지출대비 여가/여행비 지출 비중 그래프
+library(ggridges)
+ggplot(dataedu, aes(x = lt_consume_ratio, y = reorder(eduname, -lt_consume_ratio), fill = eduname)) +
+  geom_density_ridges() +
+  theme_ridges() + 
+  theme(legend.position = "none") +
+  ggtitle('학력별 총지출대비 여가/여행비 지출 비중 분포')
+```
+
+여가/여행비 지출 비중을 정렬 기준으로 설정했는데, 이는 위의 막대그래프와 동일한 순서(여가/여행비 지출액)로 정렬된 것으로 나타났다. 학력별 총 지출 대비 여가/여행비 지출 비중 분포 그래프 상에서 저학력일수록 분포가 평균값에 몰려있고 분산이 적은 것을 확인할 수 있었다. 또한 대체로 고학력일수록 평균값이 더 큰 것으로 보인다.
+
+
+```{r}
+#위의 그래프에서 확인한 것 처럼 학력별 총지출대비 여가/여행비 지출 비중의 차이가 유의한지 검정하기 위해 분산분석
+aov1  <- aov(lt_consume_ratio ~ eduname, data = dataedu)
+summary(aov1)
+```
+
+F값이 48.78로 자유도가 5인 F분포에서 유의확률(P-value)이 0.001이하의 매우 작은 값이 나왔으므로 유의수준 0.01 하에서 귀무가설을 기각할 수 있다. 학력간의 여가/여행비 지출 비중의 차이가 유의하다고 주장가능하다. 따라서 학력이 높아질수록 여가/여행비 지출 비중이 늘어난다고 할 수 있다.
+
+
+
+###4) 직종별 여가/여행비 지출분석
+####(1)변수 검토 및 전처리
+```{r}
+#결측치 확인 및 제거
+table(is.na(data$job))
+datajob <- data %>%
+  filter(!is.na(job))
+```
+
+
+```{r}
+#직종분포 확인 (1 = 관리직, 2 = 전문직, 3 = 서비스직, 4 = 사무직, 5 = 판매직, 6 = 농림어업, 7 = 기능직, 8 = 기계조작직, 9 = 단순노무직, 10 = 직업군인, 11 = 기타취업, 12 = 전업주부, 13 = 무직, 14 = 학생)
+table(datajob$job)
+```
+
+
+10, 11, 14 항목은 관측치가 충분치 않다고 판단하여 분석에서 제외했다.
+
+```{r}
+jobdf <- data.frame(job = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13),
+                    jobname = c('관리직','전문직','서비스직','사무직','판매직','농림어업','기능직','기계조작직','단순노무직','전업주부','무직'))
+datajob <- left_join(datajob, jobdf, by = 'job')
+datajob <- datajob %>% filter(jobname %in% c('관리직','전문직','서비스직', '사무직','판매직','농림어업','기능직','기계조작직','단순노무직','전업주부','무직'))
+head(datajob)
+```
+
+
+```{r}
+#직종별 분포
+table(datajob$jobname)
+```
+
+
+
+####(2)직종에 따른 여가 종류별 지출 차이
+직종별로 비교하기 위해 직종으로 그룹을 만들고 직종 그룹당 여가/여행비 평균값 변수를 생성
+```{r}
+#직종별 서적, 음반, DVD 등 구입 및 대여료
+datajob_dvd <- datajob %>% 
+  select(jobname, dvd) %>% 
+  group_by(jobname) %>% 
+  summarise(mean_expenditure = mean(dvd, na.rm = T)) %>%
+  mutate(category = 'mean_dvd')
+datajob_dvd
+#직종별 박물관, 공연, 영화 관람료
+datajob_movie <- datajob %>% 
+  select(jobname, movie) %>% 
+  group_by(jobname) %>% 
+  summarise(mean_expenditure = mean(movie, na.rm = T)) %>% 
+  mutate(category = 'mean_movie')
+datajob_movie
+#직종별 체육, 음악, 문화 활동비 지출(수강료, 동호회비 등 포함)
+datajob_activity<- datajob %>% 
+  select(jobname, activity) %>% 
+  group_by(jobname) %>% 
+  summarise(mean_expenditure = mean(activity, na.rm = T)) %>% 
+  mutate(category = 'mean_activity')
+datajob_activity
+#직종별 해외 관광, 여행 및 숙박료
+datajob_tripoversea<- datajob %>% 
+  select(jobname, tripoversea) %>% 
+  group_by(jobname) %>% 
+  summarise(mean_expenditure = mean(tripoversea, na.rm = T)) %>% 
+  mutate(category = 'mean_tripoversea')
+datajob_tripoversea
+#직종별 국내 관광, 여행 및 숙박료
+datajob_tripdomestic<- datajob %>% 
+  select(jobname, tripdomestic) %>% 
+  group_by(jobname) %>% 
+  summarise(mean_expenditure = mean(tripdomestic, na.rm = T)) %>% 
+  mutate(category = 'mean_tripdomestic')
+datajob_tripdomestic
+```
+
+
+직종별로 모든 여가/여행비를 비교하기 위해 데이터 구조 변형
+```{r}
+datajob3 <- bind_rows(datajob_dvd, datajob_movie, datajob_activity, datajob_tripoversea, datajob_tripdomestic)
+head(datajob3)
+```
+
+
+
+####(3)직종에 따른 여가 지출 차이
+```{r}
+#직종별 여가/여행비 지출 금액
+ggplot(data = datajob3, aes(x = reorder(jobname, mean_expenditure), y = mean_expenditure, fill = category)) +        geom_col() +
+  coord_flip()+
+  ggtitle('직종별 여가/여행비 지출 금액')
+```
+
+대체로 직종이 고소득일수록 총 여가/여행비가 증가하고 있다.
+
+
+####(4)직종별 여가 지출 비중 분석
+```{r}
+#직종별 여가/여행비 지출 비중
+ggplot(data = datajob3, aes(x = reorder(jobname, mean_expenditure), y = mean_expenditure, fill = category)) + geom_col(position='fill') +
+  coord_flip()+
+  ggtitle('직종별 여가/여행비 지출 비중')
+```
+
+
+
+####직종별 총 지출 대비 여가/여행비 지출의 분포
+종속변수인 여가/여행 지출비 항목의 결측치는  밀도 그래프 표현을 0으로 대체한다.
+```{r}
+datajob$dvd <- ifelse(is.na(datajob$dvd), 0, datajob$dvd)
+datajob$movie <- ifelse(is.na(datajob$movie), 0, datajob$movie)
+datajob$activity <- ifelse(is.na(datajob$activity), 0, datajob$activity)
+datajob$triptot <- ifelse(is.na(datajob$triptot), 0, datajob$triptot)
+
+#총여가비 변수 생성
+datajob <- datajob %>% mutate(leisuretot = dvd + movie + activity)
+
+
+#총 지출 대비 여가/여행비 지출 평균변수 생성
+datajob <- datajob %>% mutate(lt_consume_ratio = (leisuretot + triptot) / consume * 100)
+```
+
+
+```{r}
+#직종별 총 지출 대비 여가/여행비 지출 평균값 확인
+lt_consume_ratio_mean <- datajob %>%
+  group_by(jobname) %>% 
+  summarise(lt_consume_ratio_mean = mean(lt_consume_ratio)) %>% 
+  arrange(lt_consume_ratio_mean)
+lt_consume_ratio_mean
+
+#직종별 총지출대비 여가/여행비 지출 비중 그래프
+ggplot(datajob, aes(x = lt_consume_ratio , y = reorder(jobname, - lt_consume_ratio ), fill = jobname)) + geom_density_ridges() +
+  theme_ridges() + 
+  theme(legend.position = "none") +
+  ggtitle('직종별 총지출대비 여가/여행비 지출 비중')
+```
+
+직종의 경우도 학력과 마찬가지로 여가/여행비 지출 비중을 정렬 기준으로 설정했는데, 이는 위의 막대그래프와 대체로 동일한 순서(여가/여행비 지출액)로 정렬된 것으로 나타났다. 여가/여행비 지출액에서는 1위였던 관리직은 총 지출 대비 비중에서 3위로 하락했고, 2, 3위였던 전문직, 서비스직이 1, 2위로 1계단 씩 상승했다. 직종별 총 지출 대비 여가/여행비 지출 비중 분포 그래프 상에서 저소득 직종일수록 분포가 평균값에 몰려있고 분산이 적은 것을 확인할 수 있었다. 또한 대체로 고소득 직종일수록 평균값이 더 큰 것으로 보인다.
+
+
+```{r}
+#위의 그래프에서 확인한 것 처럼 직종별 총지출대비 여가/여행비 지출 비중의 차이가 유의한지 검정하기 위해 분산분석
+aov2  <- aov(lt_consume_ratio ~ jobname, data = datajob)
+summary(aov2)
+```
+F 값이 22.14로 자유도가 10인 F 분포에서 유의 확률(P-value)이 0.001이하의 매우 작은 값이 나왔으므로 유의수준 0.01하에서 귀무가설을 기각할 수 있다. 여가/여행비 지출 비중의 차이가 유의하다고 주장할 수 있다. 따라서 고소득 직종일수록 여가/여행비 지출 비중이 늘어난다고 할 수 있다.
+
+
+***
+##Ⅲ. 논의
+###1. 한계점
+데이터 자체가 여가를 비롯한 가구의 생활 부분보다는 세금이나 재산 상황 등에 초점이 맞춰져 있어 재정 관련 분석에 적합했다고 할 수 있다. 때문에 여가에 관한 심층적인 분석을 하는데 한계가 있었는데, 가구의 지출 중 여가와 관련된 항목을 임의로 선정했으며 다양한 여가 항목을 포괄하지 못했다. 분석 과정에서는 이상치 처리 부분에서 무응답자와 지출하지 않았다고 대답한 관측치를 전부 누락시키고 평균을 구했는데, 0으로 대체했을 때보다 그룹 간 차이의 경향성이 덜 부각되게 나오는 결과를 낳았다.
+
+
+###2. 추후분석방향
+학력과 직종이 여가에 미치는 영향을 분석하기에는 가구용 데이터보다는 가구 원용 데이터가 더 적합했을 것이라는 생각이 들었다. 만약 이 부분에서 가구 원용 데이터를 사용했다면 가구주뿐만 아니라 다양한 가구원의 학력, 직종을 이용할 수 있었을 것이다.
